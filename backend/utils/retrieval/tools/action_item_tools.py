@@ -551,3 +551,80 @@ def update_action_item_tool(
     except Exception as e:
         print(f"❌ Error updating action item: {e}")
         return f"Error updating action item: {str(e)}"
+
+
+@tool
+def delete_action_item_tool(
+    action_item_id: str,
+    config: RunnableConfig = None,
+) -> str:
+    """
+    Delete an action item (task/to-do) permanently.
+
+    Use this tool when:
+    - User asks to delete a task
+    - User asks to remove a task
+    - User says things like "delete task X", "remove the first task", "get rid of that task"
+
+    **CRITICAL**: To delete an action item, you MUST first use get_action_items_tool to retrieve the action_item_id.
+    The ID is shown in the output of get_action_items_tool.
+
+    Examples:
+    - "Delete the first task" -> First call get_action_items_tool, then use the ID from item #1
+    - "Remove the task about buying milk" -> First call get_action_items_tool, find the matching task, then use its ID
+
+    **WARNING**: This action is permanent and cannot be undone.
+
+    Args:
+        action_item_id: The ID of the action item to delete (get this from get_action_items_tool)
+
+    Returns:
+        Confirmation message about the deletion.
+    """
+    print(f"🔧 delete_action_item_tool called - action_item_id: {action_item_id}")
+
+    # Get config from parameter or context variable (like other tools do)
+    if config is None:
+        try:
+            config = agent_config_context.get()
+            if config:
+                print(f"🔧 delete_action_item_tool - got config from context variable")
+        except LookupError:
+            print(f"❌ delete_action_item_tool - config not found in context variable")
+            config = None
+
+    if config is None:
+        print(f"❌ delete_action_item_tool - config is None")
+        return "Error: Configuration not available"
+
+    try:
+        uid = config['configurable'].get('user_id')
+    except (KeyError, TypeError) as e:
+        print(f"❌ delete_action_item_tool - error accessing config: {e}")
+        return "Error: Configuration not available"
+
+    if not uid:
+        print(f"❌ delete_action_item_tool - no user_id in config")
+        return "Error: User ID not found in configuration"
+
+    # Check if action item exists and get its details for confirmation message
+    existing_item = action_items_db.get_action_item(uid, action_item_id)
+    if not existing_item:
+        return f"Error: Action item with ID '{action_item_id}' not found. Please use get_action_items_tool first to get the correct ID."
+
+    # Store description for confirmation message
+    item_description = existing_item.get('description', 'Unknown task')
+
+    # Delete the action item
+    try:
+        success = action_items_db.delete_action_item(uid, action_item_id)
+        if not success:
+            return f"Error: Failed to delete action item with ID '{action_item_id}'."
+
+        print(f"✅ delete_action_item_tool - successfully deleted action item {action_item_id}")
+
+        return f"Successfully deleted action item: {item_description}"
+
+    except Exception as e:
+        print(f"❌ Error deleting action item: {e}")
+        return f"Error deleting action item: {str(e)}"

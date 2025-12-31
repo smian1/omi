@@ -17,6 +17,7 @@ from .action_item_tools import (
     get_action_items_tool,
     create_action_item_tool,
     update_action_item_tool,
+    delete_action_item_tool,
 )
 from .omi_tools import (
     get_omi_product_info_tool,
@@ -65,6 +66,7 @@ __all__ = [
     'get_action_items_tool',
     'create_action_item_tool',
     'update_action_item_tool',
+    'delete_action_item_tool',
     'get_omi_product_info_tool',
     'perplexity_search_tool',
     'get_calendar_events_tool',
